@@ -4734,6 +4734,16 @@
             document.getElementById('homePage').style.display = 'none';
             canvas.style.display = 'block';
             document.getElementById('ui').style.display = 'block';
+
+            // Resize canvas after showing it
+            resizeCanvas();
+
+            // Reset game state
+            currentRound = 1;
+            totalScore = 0;
+            attempts = 1;
+            updateRoundDisplay();
+
             gameRunning = true;
             resetGame();
 
