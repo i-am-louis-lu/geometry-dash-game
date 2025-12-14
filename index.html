@@ -15,27 +15,27 @@
             box-sizing: border-box;
         }
 
-        body {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #1a1a2e;
             font-family: 'Orbitron', sans-serif;
         }
 
         #gameContainer {
-            position: relative;
-            width: 900px;
-            height: 500px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
             background: #1a1a2e;
-            border: 3px solid #00d4ff;
-            border-radius: 8px;
-            box-shadow: 0 0 30px rgba(0, 212, 255, 0.3);
         }
 
         canvas {
             display: block;
+            width: 100%;
+            height: 100%;
         }
 
         #ui {
@@ -73,9 +73,8 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            background: rgba(0, 0, 0, 0.8);
+            background: rgba(0, 0, 0, 0.85);
             color: #fff;
-            border-radius: 8px;
         }
 
         #gameOver,
@@ -391,7 +390,7 @@
 <body>
 
     <div id="gameContainer">
-        <canvas id="gameCanvas" width="900" height="500" style="display: none;"></canvas>
+        <canvas id="gameCanvas" style="display: none;"></canvas>
         <div id="ui" style="display: none;">
             <div id="round">Round: 1/5</div>
             <div id="score">Score: 0</div>
@@ -467,6 +466,35 @@
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
+
+        // Base game dimensions (original design)
+        const BASE_WIDTH = 900;
+        const BASE_HEIGHT = 500;
+        let scale = 1;
+
+        // Resize canvas to fill screen while maintaining aspect ratio
+        function resizeCanvas() {
+            const windowWidth = window.innerWidth;
+            const windowHeight = window.innerHeight;
+
+            // Calculate scale to fit screen while maintaining aspect ratio
+            const scaleX = windowWidth / BASE_WIDTH;
+            const scaleY = windowHeight / BASE_HEIGHT;
+            scale = Math.min(scaleX, scaleY);
+
+            // Set canvas to full window size
+            canvas.width = windowWidth;
+            canvas.height = windowHeight;
+
+            // Center the game view
+            ctx.setTransform(scale, 0, 0, scale,
+                (windowWidth - BASE_WIDTH * scale) / 2,
+                (windowHeight - BASE_HEIGHT * scale) / 2);
+        }
+
+        // Initial resize and listen for window changes
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
 
         // Helper function to draw gradient text (white to black gradient, or custom colors)
         function drawGradientText(text, x, y, font, align = 'center', colorTop = '#ffffff', colorMid = '#aaaaaa', colorBottom = '#444444') {
@@ -584,7 +612,7 @@
         // Player
         const player = {
             x: 100,
-            y: canvas.height - GROUND_HEIGHT - 40,
+            y: BASE_HEIGHT - GROUND_HEIGHT - 40,
             width: 40,
             height: 40,
             velocityY: 0,
@@ -1009,7 +1037,7 @@
             const ph = player.height - padding * 2;
 
             // Check if wall is on screen
-            if (wall.x > canvas.width || wall.x + wall.width < 0) {
+            if (wall.x > BASE_WIDTH || wall.x + wall.width < 0) {
                 return false;
             }
 
@@ -1043,7 +1071,7 @@
             finishLine = null;
 
             const BASE_GAP = 200; // Base gap between obstacles
-            let currentX = canvas.width + 400; // Start position
+            let currentX = BASE_WIDTH + 400; // Start position
 
             // Track obstacle positions for orb placement
             let lastObstacleEnd = currentX;
@@ -1073,7 +1101,7 @@
                     const orbX = currentX - 60;
                     orbs.push({
                         x: orbX,
-                        y: canvas.height - GROUND_HEIGHT - 50,
+                        y: BASE_HEIGHT - GROUND_HEIGHT - 50,
                         width: 20,
                         height: 50,
                         used: false
@@ -1096,20 +1124,20 @@
             // Only appears if hasn't been found this run
             if (currentRound >= 2 && !secretAreaFound) {
                 // Random position somewhere in the middle of the level
-                const minX = canvas.width + 800;
+                const minX = BASE_WIDTH + 800;
                 const maxX = currentX - 500;
                 const secretX = minX + seededRandom() * (maxX - minX);
 
                 // Random height - either ground level or elevated
                 const heightOptions = [
-                    canvas.height - GROUND_HEIGHT - 80,  // Ground level (easy to reach)
-                    canvas.height - GROUND_HEIGHT - 150, // Medium height
-                    canvas.height - GROUND_HEIGHT - 200  // High up (needs platform)
+                    BASE_HEIGHT - GROUND_HEIGHT - 80,  // Ground level (easy to reach)
+                    BASE_HEIGHT - GROUND_HEIGHT - 150, // Medium height
+                    BASE_HEIGHT - GROUND_HEIGHT - 200  // High up (needs platform)
                 ];
                 const secretY = heightOptions[Math.floor(seededRandom() * heightOptions.length)];
 
                 // Add a small platform hint if portal is high up
-                if (secretY < canvas.height - GROUND_HEIGHT - 120) {
+                if (secretY < BASE_HEIGHT - GROUND_HEIGHT - 120) {
                     platforms.push({
                         x: secretX - 80,
                         y: secretY + 50,
@@ -1132,7 +1160,7 @@
             currentX += 100;
             portals.push({
                 x: currentX,
-                y: canvas.height - GROUND_HEIGHT - 120,
+                y: BASE_HEIGHT - GROUND_HEIGHT - 120,
                 width: 40,
                 height: 120,
                 type: 'shipEnter'
@@ -1154,11 +1182,11 @@
                 const gap = baseGap - (baseGap - minGap) * progress * 0.3;
 
                 // Center of the tunnel varies with a sine wave
-                const centerY = canvas.height / 2 + Math.sin((tx - tunnelStart) * 0.008) * 80;
+                const centerY = BASE_HEIGHT / 2 + Math.sin((tx - tunnelStart) * 0.008) * 80;
 
                 const topHeight = centerY - gap / 2;
                 const bottomY = centerY + gap / 2;
-                const bottomHeight = canvas.height - bottomY;
+                const bottomHeight = BASE_HEIGHT - bottomY;
 
                 // Top spikes (pointing down)
                 tunnelWalls.push({
@@ -1185,7 +1213,7 @@
             // Add portal to exit ship mode
             portals.push({
                 x: currentX,
-                y: canvas.height - GROUND_HEIGHT - 120,
+                y: BASE_HEIGHT - GROUND_HEIGHT - 120,
                 width: 40,
                 height: 120,
                 type: 'shipExit'
@@ -1209,7 +1237,7 @@
                     const orbX = currentX - 60;
                     orbs.push({
                         x: orbX,
-                        y: canvas.height - GROUND_HEIGHT - 50,
+                        y: BASE_HEIGHT - GROUND_HEIGHT - 50,
                         width: 20,
                         height: 50,
                         used: false
@@ -1267,7 +1295,7 @@
             }
 
             // Remove any obstacles (steps/blocks) that overlap with pits
-            const groundY = canvas.height - GROUND_HEIGHT;
+            const groundY = BASE_HEIGHT - GROUND_HEIGHT;
             for (let i = obstacles.length - 1; i >= 0; i--) {
                 const obs = obstacles[i];
                 // Check if obstacle is a step or block that sits on the ground
@@ -1310,7 +1338,7 @@
                     const inLandingZone = obs.x + obs.width > landingStart && obs.x < landingEnd;
 
                     // Only remove ground-level obstacles (not ceiling stuff)
-                    const isGroundLevel = obs.y > canvas.height - GROUND_HEIGHT - 120;
+                    const isGroundLevel = obs.y > BASE_HEIGHT - GROUND_HEIGHT - 120;
 
                     if (isDeadly && inLandingZone && isGroundLevel) {
                         obstacles.splice(i, 1);
@@ -1320,7 +1348,7 @@
         }
 
         function createPattern(type, baseX) {
-            const groundY = canvas.height - GROUND_HEIGHT;
+            const groundY = BASE_HEIGHT - GROUND_HEIGHT;
 
             switch (type) {
                 case 'spike':
@@ -1532,7 +1560,7 @@
                     obstacles.push({ x: baseX + 45, y: groundY - 40, width: 40, height: 40, type: 'spike' });
                     // Ceiling blocks going to roof with spikes hanging down
                     const roofY = 0;
-                    const ceilingBlockHeight = canvas.height - GROUND_HEIGHT - 140;
+                    const ceilingBlockHeight = BASE_HEIGHT - GROUND_HEIGHT - 140;
                     obstacles.push({ x: baseX + 90, y: roofY, width: 45, height: ceilingBlockHeight, type: 'ceilingBlock' });
                     obstacles.push({ x: baseX + 90, y: roofY + ceilingBlockHeight, width: 45, height: 40, type: 'spikeDown' });
                     obstacles.push({ x: baseX + 140, y: roofY, width: 45, height: ceilingBlockHeight, type: 'ceilingBlock' });
@@ -1549,7 +1577,7 @@
                     // Add disappearing platforms over the pit
                     platforms.push({
                         x: baseX + 20,
-                        y: canvas.height - GROUND_HEIGHT - 60,
+                        y: BASE_HEIGHT - GROUND_HEIGHT - 60,
                         width: 60,
                         height: 15,
                         disappearing: true,
@@ -1558,7 +1586,7 @@
                     });
                     platforms.push({
                         x: baseX + 100,
-                        y: canvas.height - GROUND_HEIGHT - 80,
+                        y: BASE_HEIGHT - GROUND_HEIGHT - 80,
                         width: 60,
                         height: 15,
                         disappearing: true,
@@ -1570,6 +1598,9 @@
         }
 
         function update() {
+            // Don't run any game logic when not running (on home page, etc.)
+            if (!gameRunning) return;
+
             // Always update particles (even when game is not running, for death explosion)
             for (let i = particles.length - 1; i >= 0; i--) {
                 particles[i].x += particles[i].vx;
@@ -1597,12 +1628,12 @@
                         shipMode = true;
                         shipVelocityY = 0;
                         shipTrail = [];
-                        player.y = canvas.height / 2 - player.height / 2;
+                        player.y = BASE_HEIGHT / 2 - player.height / 2;
                     } else {
                         shipMode = false;
                         shipTrail = [];
                         player.velocityY = 0;
-                        player.y = canvas.height - GROUND_HEIGHT - player.height;
+                        player.y = BASE_HEIGHT - GROUND_HEIGHT - player.height;
                         player.onGround = true;
                         player.rotation = 0;
                     }
@@ -1633,8 +1664,6 @@
                 }
                 return; // Don't update game during countdown
             }
-
-            if (!gameRunning) return;
 
             // Update invincibility timer
             if (invincible) {
@@ -1732,8 +1761,8 @@
                     // For standard wave, you just die usually, but let's slide for now or bounce?
                     // Let's slide but clamp velocity visuals
                 }
-                if (player.y > canvas.height - 50) {
-                    player.y = canvas.height - 50;
+                if (player.y > BASE_HEIGHT - 50) {
+                    player.y = BASE_HEIGHT - 50;
                 }
             } else {
                 // Speed increase depends on round
@@ -1852,21 +1881,21 @@
 
             // Ground/Pit collision logic
             if (!shipMode && !flyMode) {
-                if (player.y >= canvas.height - GROUND_HEIGHT - player.height) {
+                if (player.y >= BASE_HEIGHT - GROUND_HEIGHT - player.height) {
                     // Check if falling into a pit
                     if (overPit && !player.onPlatform) {
                         // Fall through (but not if invincible - teleport to ground)
                         if (invincible) {
-                            player.y = canvas.height - GROUND_HEIGHT - player.height;
+                            player.y = BASE_HEIGHT - GROUND_HEIGHT - player.height;
                             player.onGround = true;
                             player.isJumping = false;
                             jumpProgress = 0;
-                        } else if (player.y > canvas.height) {
+                        } else if (player.y > BASE_HEIGHT) {
                             gameOver();
                         }
                     } else {
                         // Land on ground
-                        player.y = canvas.height - GROUND_HEIGHT - player.height;
+                        player.y = BASE_HEIGHT - GROUND_HEIGHT - player.height;
                         player.onGround = true;
                         player.isJumping = false;
                         jumpProgress = 0;
@@ -2104,7 +2133,8 @@
         }
 
         function draw() {
-            // Clear canvas
+            // Reset transform and clear entire canvas
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
             ctx.fillStyle = '#1a1a2e';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -2112,6 +2142,11 @@
             if (!gameRunning) {
                 return;
             }
+
+            // Reapply game transform
+            ctx.setTransform(scale, 0, 0, scale,
+                (window.innerWidth - BASE_WIDTH * scale) / 2,
+                (window.innerHeight - BASE_HEIGHT * scale) / 2);
 
             // During wormhole transition, only draw the cutscene
             if (wormholeTransition) {
@@ -2135,21 +2170,21 @@
 
             // Draw tunnel walls (ship mode)
             for (const wall of tunnelWalls) {
-                if (wall.x < canvas.width + 50 && wall.x + wall.width > -50) {
+                if (wall.x < BASE_WIDTH + 50 && wall.x + wall.width > -50) {
                     drawTunnelWall(wall);
                 }
             }
 
             // Draw portals
             for (const portal of portals) {
-                if (portal.x < canvas.width + 100 && portal.x + portal.width > -50) {
+                if (portal.x < BASE_WIDTH + 100 && portal.x + portal.width > -50) {
                     drawPortal(portal);
                 }
             }
 
             // Draw SECRET portals (sci-fi style)
             for (const secretPortal of secretPortals) {
-                if (secretPortal.x < canvas.width + 100 && secretPortal.x + secretPortal.width > -50) {
+                if (secretPortal.x < BASE_WIDTH + 100 && secretPortal.x + secretPortal.width > -50) {
                     secretPortal.shimmer = (secretPortal.shimmer || 0) + 0.1;
                     const pulse = secretPortal.shimmer;
                     const x = secretPortal.x;
@@ -2214,26 +2249,26 @@
 
             // Draw orbs
             for (const orb of orbs) {
-                if (orb.x < canvas.width + 50 && orb.x + orb.width > -50 && !orb.used) {
+                if (orb.x < BASE_WIDTH + 50 && orb.x + orb.width > -50 && !orb.used) {
                     drawOrb(orb);
                 }
             }
 
             // Draw finish line
-            if (finishLine && finishLine.x < canvas.width + 100) {
+            if (finishLine && finishLine.x < BASE_WIDTH + 100) {
                 drawFinishLine();
             }
 
             // Draw platforms
             for (const platform of platforms) {
-                if (platform.x < canvas.width + 50 && platform.x + platform.width > -50) {
+                if (platform.x < BASE_WIDTH + 50 && platform.x + platform.width > -50) {
                     drawPlatform(platform);
                 }
             }
 
             // Draw obstacles
             for (const obstacle of obstacles) {
-                if (obstacle.x < canvas.width + 50 && obstacle.x + obstacle.width > -50) {
+                if (obstacle.x < BASE_WIDTH + 50 && obstacle.x + obstacle.width > -50) {
                     drawObstacle(obstacle);
                 }
             }
@@ -2281,18 +2316,18 @@
 
             // Fly mode indicator
             if (flyMode) {
-                drawGradientText('FLY MODE', 20, canvas.height - 20, 'bold 14px Orbitron', 'left', '#ffffff', '#ff66ff', '#aa22aa');
+                drawGradientText('FLY MODE', 20, BASE_HEIGHT - 20, 'bold 14px Orbitron', 'left', '#ffffff', '#ff66ff', '#aa22aa');
             }
 
             // Ship mode indicator
             if (shipMode && !flyMode) {
-                drawGradientText('SHIP MODE', 20, canvas.height - 20, 'bold 14px Orbitron', 'left', '#ffffff', '#00d4ff', '#0066aa');
+                drawGradientText('SHIP MODE', 20, BASE_HEIGHT - 20, 'bold 14px Orbitron', 'left', '#ffffff', '#00d4ff', '#0066aa');
             }
 
             // Invincibility indicator
             if (invincible) {
                 const secondsLeft = Math.ceil(invincibleTimer / 60);
-                drawGradientText(`INVINCIBLE: ${secondsLeft}s`, 20, canvas.height - 40, 'bold 14px Orbitron', 'left', '#ffffff', '#ffff66', '#aa8800');
+                drawGradientText(`INVINCIBLE: ${secondsLeft}s`, 20, BASE_HEIGHT - 40, 'bold 14px Orbitron', 'left', '#ffffff', '#ffff66', '#aa8800');
             }
 
             // Spawn countdown overlay (after wormhole transition)
@@ -2300,31 +2335,31 @@
                 const secondsLeft = Math.ceil(spawnCountdown / 60);
                 // Semi-transparent overlay
                 ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillRect(0, 0, BASE_WIDTH, BASE_HEIGHT);
                 // Countdown number
                 ctx.fillStyle = '#00d4ff';
                 ctx.font = 'bold 120px Orbitron';
                 ctx.textAlign = 'center';
                 ctx.shadowColor = '#00d4ff';
                 ctx.shadowBlur = 30;
-                ctx.fillText(secondsLeft > 0 ? secondsLeft : 'GO!', canvas.width / 2, canvas.height / 2 + 30);
+                ctx.fillText(secondsLeft > 0 ? secondsLeft : 'GO!', BASE_WIDTH / 2, BASE_HEIGHT / 2 + 30);
                 // Get Ready text
                 ctx.font = 'bold 28px Orbitron';
                 ctx.fillStyle = '#ffffff';
-                ctx.fillText('Get Ready!', canvas.width / 2, canvas.height / 2 + 80);
+                ctx.fillText('Get Ready!', BASE_WIDTH / 2, BASE_HEIGHT / 2 + 80);
                 ctx.shadowBlur = 0;
             }
         }
 
         function drawWormholeEffect() {
-            const cx = canvas.width / 2;
+            const cx = BASE_WIDTH / 2;
 
             if (wormholeEntering) {
                 // ENTERING CUTSCENE: Player jumps over obstacle, sees hole, falls in
                 // Phase 1: Jump over spike, land, walk to hole, peer in, fall (frames 0-420)
                 // Phase 2: Falling down the hole (frames 420+)
                 const PHASE1_END = 420;
-                const groundY = canvas.height - 100;
+                const groundY = BASE_HEIGHT - 100;
                 const holeX = cx + 50;
                 const holeWidth = 120;
                 const playerSize = 40;
@@ -2334,17 +2369,17 @@
                     const halfSize = playerSize / 2;
 
                     // BACKGROUND: Night sky gradient
-                    const skyGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+                    const skyGrad = ctx.createLinearGradient(0, 0, 0, BASE_HEIGHT);
                     skyGrad.addColorStop(0, '#0a0a18');
                     skyGrad.addColorStop(0.5, '#1a1a3e');
                     skyGrad.addColorStop(1, '#2a3a5e');
                     ctx.fillStyle = skyGrad;
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.fillRect(0, 0, BASE_WIDTH, BASE_HEIGHT);
 
                     // STARS: Twinkling stars
                     for (let i = 0; i < 40; i++) {
-                        const sx = (i * 73 + 20) % canvas.width;
-                        const sy = (i * 47 + 10) % (canvas.height - 120);
+                        const sx = (i * 73 + 20) % BASE_WIDTH;
+                        const sy = (i * 47 + 10) % (BASE_HEIGHT - 120);
                         const twinkle = Math.sin(wormholeProgress * 0.1 + i) * 0.4 + 0.6;
                         ctx.fillStyle = `rgba(255, 255, 255, ${twinkle})`;
                         ctx.beginPath();
@@ -2355,12 +2390,12 @@
                     // GROUND: Textured ground (with gap for hole)
                     ctx.fillStyle = '#1a3a5a';
                     ctx.fillRect(0, groundY, holeX, 100);
-                    ctx.fillRect(holeX + holeWidth, groundY, canvas.width - holeX - holeWidth, 100);
+                    ctx.fillRect(holeX + holeWidth, groundY, BASE_WIDTH - holeX - holeWidth, 100);
 
                     // Ground texture lines
                     ctx.strokeStyle = '#2a4a6a';
                     ctx.lineWidth = 1;
-                    for (let gx = 0; gx < canvas.width; gx += 25) {
+                    for (let gx = 0; gx < BASE_WIDTH; gx += 25) {
                         if (gx < holeX || gx > holeX + holeWidth) {
                             ctx.beginPath();
                             ctx.moveTo(gx, groundY + 5);
@@ -2378,7 +2413,7 @@
                     ctx.stroke();
                     ctx.beginPath();
                     ctx.moveTo(holeX + holeWidth, groundY);
-                    ctx.lineTo(canvas.width, groundY);
+                    ctx.lineTo(BASE_WIDTH, groundY);
                     ctx.stroke();
 
                     // DOUBLE BOX OBSTACLE (2 boxes side by side [box][box])
@@ -2686,12 +2721,12 @@
                     ctx.translate(shakeX, shakeY);
 
                     // Dark tunnel background - darker at bottom (abyss)
-                    const bgGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+                    const bgGrad = ctx.createLinearGradient(0, 0, 0, BASE_HEIGHT);
                     bgGrad.addColorStop(0, '#0a0a15');
                     bgGrad.addColorStop(0.5, '#050510');
                     bgGrad.addColorStop(1, '#000005');
                     ctx.fillStyle = bgGrad;
-                    ctx.fillRect(-10, -10, canvas.width + 20, canvas.height + 20);
+                    ctx.fillRect(-10, -10, BASE_WIDTH + 20, BASE_HEIGHT + 20);
 
                     // Tunnel walls
                     const tunnelWidth = 320;
@@ -2700,19 +2735,19 @@
 
                     // Rocky walls on sides
                     ctx.fillStyle = '#151520';
-                    ctx.fillRect(0, 0, tunnelLeft, canvas.height);
-                    ctx.fillRect(tunnelRight, 0, canvas.width - tunnelRight, canvas.height);
+                    ctx.fillRect(0, 0, tunnelLeft, BASE_HEIGHT);
+                    ctx.fillRect(tunnelRight, 0, BASE_WIDTH - tunnelRight, BASE_HEIGHT);
 
                     // Center void
                     ctx.fillStyle = '#020208';
-                    ctx.fillRect(tunnelLeft, 0, tunnelWidth, canvas.height);
+                    ctx.fillRect(tunnelLeft, 0, tunnelWidth, BASE_HEIGHT);
 
                     // Wall rocks - moving from BOTTOM to TOP (we fall past them)
                     const rockSpeed = 20;
                     for (let i = 0; i < 20; i++) {
                         const baseY = i * 40;
                         // Subtract to make them move UP (from bottom to top)
-                        const rockY = canvas.height - ((baseY + fallProgress * rockSpeed) % (canvas.height + 80)) + 40;
+                        const rockY = BASE_HEIGHT - ((baseY + fallProgress * rockSpeed) % (BASE_HEIGHT + 80)) + 40;
                         const rockWidth = 25 + (i % 4) * 12;
                         const rockHeight = 10 + (i % 3) * 6;
 
@@ -2729,7 +2764,7 @@
                     for (let i = 0; i < 28; i++) {
                         const baseY = i * 28;
                         // Move from bottom to top
-                        const lineY = canvas.height - ((baseY + fallProgress * lineSpeed) % (canvas.height + 120)) + 60;
+                        const lineY = BASE_HEIGHT - ((baseY + fallProgress * lineSpeed) % (BASE_HEIGHT + 120)) + 60;
                         const xOffset = (i % 5) * 8;
                         const lineLen = 100 + (i % 3) * 40;
 
@@ -2750,7 +2785,7 @@
                     const ringSpeed = 18;
                     for (let i = 0; i < 12; i++) {
                         const baseY = i * 55;
-                        const ringY = canvas.height - ((baseY + fallProgress * ringSpeed) % (canvas.height + 100)) + 50;
+                        const ringY = BASE_HEIGHT - ((baseY + fallProgress * ringSpeed) % (BASE_HEIGHT + 100)) + 50;
                         const ringSize = 90 + (i % 3) * 25;
 
                         ctx.strokeStyle = `rgba(0, 200, 255, 0.35)`;
@@ -2765,7 +2800,7 @@
                     for (let i = 0; i < 50; i++) {
                         const baseY = i * 18;
                         // Move from bottom to top
-                        const pY = canvas.height - ((baseY + fallProgress * particleSpeed) % (canvas.height + 80)) + 40;
+                        const pY = BASE_HEIGHT - ((baseY + fallProgress * particleSpeed) % (BASE_HEIGHT + 80)) + 40;
                         const baseX = tunnelLeft + 20 + ((i * 31) % (tunnelWidth - 40));
                         const wobble = Math.sin((fallProgress * 0.08) + i * 1.1) * 8;
                         const pX = baseX + wobble;
@@ -2794,7 +2829,7 @@
                     const playerBobY = Math.sin(fallProgress * 0.07) * 5;
 
                     ctx.save();
-                    ctx.translate(cx + playerBobX, canvas.height / 2 + playerBobY);
+                    ctx.translate(cx + playerBobX, BASE_HEIGHT / 2 + playerBobY);
                     ctx.rotate(rotation);
 
                     // Player glow
@@ -2838,7 +2873,7 @@
                     ctx.lineWidth = 3;
                     for (let i = 0; i < 10; i++) {
                         const blurX = cx + playerBobX + Math.sin(fallProgress * 0.06 + i * 0.7) * 20;
-                        const blurY = canvas.height / 2 + playerBobY - 45 - i * 15;
+                        const blurY = BASE_HEIGHT / 2 + playerBobY - 45 - i * 15;
                         ctx.beginPath();
                         ctx.moveTo(blurX, blurY);
                         ctx.lineTo(blurX, blurY - 40);
@@ -2851,14 +2886,14 @@
                     topGrad.addColorStop(0, `rgba(150, 200, 255, ${topAlpha})`);
                     topGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
                     ctx.fillStyle = topGrad;
-                    ctx.fillRect(0, 0, canvas.width, 150);
+                    ctx.fillRect(0, 0, BASE_WIDTH, 150);
 
                     // Dark abyss at BOTTOM (where we're heading)
-                    const abyssGrad = ctx.createLinearGradient(0, canvas.height - 150, 0, canvas.height);
+                    const abyssGrad = ctx.createLinearGradient(0, BASE_HEIGHT - 150, 0, BASE_HEIGHT);
                     abyssGrad.addColorStop(0, 'rgba(0, 0, 0, 0)');
                     abyssGrad.addColorStop(1, 'rgba(0, 0, 20, 0.98)');
                     ctx.fillStyle = abyssGrad;
-                    ctx.fillRect(0, canvas.height - 150, canvas.width, 150);
+                    ctx.fillRect(0, BASE_HEIGHT - 150, BASE_WIDTH, 150);
 
                     ctx.restore(); // End screen shake
 
@@ -2882,7 +2917,7 @@
                             ctx.textAlign = 'center';
                             ctx.shadowColor = '#00d4ff';
                             ctx.shadowBlur = 25;
-                            ctx.fillText('CLICK TO CONTINUE', cx, canvas.height - 50);
+                            ctx.fillText('CLICK TO CONTINUE', cx, BASE_HEIGHT - 50);
                             ctx.restore();
                         }
                     }
@@ -2912,7 +2947,7 @@
 
                     // Dark tunnel background
                     ctx.fillStyle = '#000000';
-                    ctx.fillRect(-10, -10, canvas.width + 20, canvas.height + 20);
+                    ctx.fillRect(-10, -10, BASE_WIDTH + 20, BASE_HEIGHT + 20);
 
                     // Tunnel walls
                     const tunnelWidth = 220;
@@ -2921,24 +2956,24 @@
 
                     // Rock walls with texture
                     ctx.fillStyle = '#1a1a2a';
-                    ctx.fillRect(0, 0, tunnelLeft, canvas.height);
-                    ctx.fillRect(tunnelRight, 0, canvas.width - tunnelRight, canvas.height);
+                    ctx.fillRect(0, 0, tunnelLeft, BASE_HEIGHT);
+                    ctx.fillRect(tunnelRight, 0, BASE_WIDTH - tunnelRight, BASE_HEIGHT);
 
                     // Wall rocks/texture scrolling down
                     ctx.fillStyle = '#2a2a3a';
                     for (let i = 0; i < 12; i++) {
-                        const rockY = (((i * 60 + scrollOffset) % (canvas.height + 80)) - 40);
+                        const rockY = (((i * 60 + scrollOffset) % (BASE_HEIGHT + 80)) - 40);
                         ctx.fillRect(tunnelLeft - 25, rockY, 30, 15);
                         ctx.fillRect(tunnelRight - 5, rockY + 30, 30, 15);
                     }
 
                     // Void center
-                    const voidGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+                    const voidGradient = ctx.createLinearGradient(0, 0, 0, BASE_HEIGHT);
                     voidGradient.addColorStop(0, '#101020');
                     voidGradient.addColorStop(0.5, '#080815');
                     voidGradient.addColorStop(1, '#050508');
                     ctx.fillStyle = voidGradient;
-                    ctx.fillRect(tunnelLeft, 0, tunnelWidth, canvas.height);
+                    ctx.fillRect(tunnelLeft, 0, tunnelWidth, BASE_HEIGHT);
 
                     // Light from above (gets brighter in phase 2)
                     if (wormholeProgress > exitPhase1End) {
@@ -2948,7 +2983,7 @@
                         lightGradient.addColorStop(0.3, `rgba(200, 220, 255, ${lightProgress * 0.4})`);
                         lightGradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
                         ctx.fillStyle = lightGradient;
-                        ctx.fillRect(tunnelLeft, 0, tunnelWidth, canvas.height / 2);
+                        ctx.fillRect(tunnelLeft, 0, tunnelWidth, BASE_HEIGHT / 2);
 
                         // "Almost there!" text with gradient
                         ctx.globalAlpha = lightProgress * 0.9;
@@ -2961,7 +2996,7 @@
                     ctx.lineWidth = 3;
                     for (let i = 0; i < 15; i++) {
                         const lineX = tunnelLeft + 20 + (i % 6) * 35;
-                        const lineY = (((i * 45 + scrollOffset * 1.5) % (canvas.height + 100)) - 50);
+                        const lineY = (((i * 45 + scrollOffset * 1.5) % (BASE_HEIGHT + 100)) - 50);
                         const lineLen = 60 + Math.sin(i) * 20;
                         ctx.beginPath();
                         ctx.moveTo(lineX, lineY);
@@ -2971,9 +3006,9 @@
 
                     // Rings flying down (ship going up)
                     for (let i = 0; i < 10; i++) {
-                        const ringY = (((i * 70 + scrollOffset * 0.8) % (canvas.height + 150)) - 75);
-                        const ringSize = 70 + (ringY / canvas.height) * 40;
-                        ctx.strokeStyle = `rgba(80, 150, 200, ${0.4 - (ringY / canvas.height) * 0.2})`;
+                        const ringY = (((i * 70 + scrollOffset * 0.8) % (BASE_HEIGHT + 150)) - 75);
+                        const ringSize = 70 + (ringY / BASE_HEIGHT) * 40;
+                        ctx.strokeStyle = `rgba(80, 150, 200, ${0.4 - (ringY / BASE_HEIGHT) * 0.2})`;
                         ctx.lineWidth = 2;
                         ctx.beginPath();
                         ctx.ellipse(cx, ringY, ringSize, 12, 0, 0, Math.PI * 2);
@@ -2985,12 +3020,12 @@
                     const burstProgress = (wormholeProgress - exitPhase2End) / 60;
 
                     // Sky background
-                    const skyGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+                    const skyGradient = ctx.createLinearGradient(0, 0, 0, BASE_HEIGHT);
                     skyGradient.addColorStop(0, '#87CEEB');
                     skyGradient.addColorStop(0.5, '#4A90C2');
                     skyGradient.addColorStop(1, '#2E5A80');
                     ctx.fillStyle = skyGradient;
-                    ctx.fillRect(-10, -10, canvas.width + 20, canvas.height + 20);
+                    ctx.fillRect(-10, -10, BASE_WIDTH + 20, BASE_HEIGHT + 20);
 
                     // Sun burst effect
                     const sunGlow = ctx.createRadialGradient(cx, 80, 20, cx, 80, 200);
@@ -2998,12 +3033,12 @@
                     sunGlow.addColorStop(0.3, 'rgba(255, 220, 100, 0.5)');
                     sunGlow.addColorStop(1, 'rgba(255, 200, 50, 0)');
                     ctx.fillStyle = sunGlow;
-                    ctx.fillRect(0, 0, canvas.width, 300);
+                    ctx.fillRect(0, 0, BASE_WIDTH, 300);
 
                     // Clouds
                     ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
                     for (let i = 0; i < 5; i++) {
-                        const cloudX = (i * 180 + wormholeProgress * 0.5) % (canvas.width + 100) - 50;
+                        const cloudX = (i * 180 + wormholeProgress * 0.5) % (BASE_WIDTH + 100) - 50;
                         const cloudY = 150 + i * 40 + Math.sin(i) * 30;
                         ctx.beginPath();
                         ctx.ellipse(cloudX, cloudY, 60, 25, 0, 0, Math.PI * 2);
@@ -3014,13 +3049,13 @@
 
                     // Ground below (distant)
                     ctx.fillStyle = '#2a5a30';
-                    ctx.fillRect(0, canvas.height - 80, canvas.width, 80);
+                    ctx.fillRect(0, BASE_HEIGHT - 80, BASE_WIDTH, 80);
                     ctx.fillStyle = '#3a7a40';
-                    for (let x = 0; x < canvas.width; x += 40) {
+                    for (let x = 0; x < BASE_WIDTH; x += 40) {
                         ctx.beginPath();
-                        ctx.moveTo(x, canvas.height - 80);
-                        ctx.lineTo(x + 20, canvas.height - 100);
-                        ctx.lineTo(x + 40, canvas.height - 80);
+                        ctx.moveTo(x, BASE_HEIGHT - 80);
+                        ctx.lineTo(x + 20, BASE_HEIGHT - 100);
+                        ctx.lineTo(x + 40, BASE_HEIGHT - 80);
                         ctx.fill();
                     }
 
@@ -3033,7 +3068,7 @@
                     // Celebration particles
                     for (let i = 0; i < 20; i++) {
                         const particleX = cx + Math.sin(wormholeProgress * 0.1 + i * 0.5) * (100 + i * 10);
-                        const particleY = canvas.height / 2 - 50 + Math.cos(wormholeProgress * 0.15 + i * 0.7) * 80;
+                        const particleY = BASE_HEIGHT / 2 - 50 + Math.cos(wormholeProgress * 0.15 + i * 0.7) * 80;
                         const colors = ['#ff6b6b', '#4ecdc4', '#ffe66d', '#95e1d3'];
                         ctx.fillStyle = colors[i % 4];
                         ctx.beginPath();
@@ -3044,8 +3079,8 @@
 
                 // Draw spaceship
                 const shipY = wormholeProgress < exitPhase2End
-                    ? canvas.height / 2
-                    : canvas.height / 2 - ((wormholeProgress - exitPhase2End) / 60) * 50;
+                    ? BASE_HEIGHT / 2
+                    : BASE_HEIGHT / 2 - ((wormholeProgress - exitPhase2End) / 60) * 50;
                 const shipTilt = Math.sin(wormholeProgress * 0.1) * 0.1;
                 const scale = 2.5;
 
@@ -3140,16 +3175,16 @@
             if (initialProgress < 1) {
                 const fadeAlpha = 1 - initialProgress;
                 ctx.fillStyle = `rgba(0, 0, 0, ${fadeAlpha})`;
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillRect(0, 0, BASE_WIDTH, BASE_HEIGHT);
             }
 
             // Text indicator
         }
 
         function drawSecretAreaCutscene() {
-            const cx = canvas.width / 2;
-            const cy = canvas.height / 2;
-            const groundY = canvas.height - 80;
+            const cx = BASE_WIDTH / 2;
+            const cy = BASE_HEIGHT / 2;
+            const groundY = BASE_HEIGHT - 80;
             const playerSize = 40;
 
             // SCI-FI SECRET DIMENSION
@@ -3272,7 +3307,7 @@
 
                 // Dark sci-fi background
                 ctx.fillStyle = '#050510';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillRect(0, 0, BASE_WIDTH, BASE_HEIGHT);
 
                 // Warp lines rushing to center
                 for (let i = 0; i < 30; i++) {
@@ -3295,7 +3330,7 @@
                 // Flash at end
                 if (t > 0.8) {
                     ctx.fillStyle = `rgba(255, 255, 255, ${(t - 0.8) * 5})`;
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.fillRect(0, 0, BASE_WIDTH, BASE_HEIGHT);
                 }
 
             } else {
@@ -3303,12 +3338,12 @@
                 const dimProgress = secretAreaProgress - PHASE1_END;
 
                 // Sci-fi background - dark with grid
-                const bgGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+                const bgGrad = ctx.createLinearGradient(0, 0, 0, BASE_HEIGHT);
                 bgGrad.addColorStop(0, '#0a0a20');
                 bgGrad.addColorStop(0.5, '#101030');
                 bgGrad.addColorStop(1, '#0a0a20');
                 ctx.fillStyle = bgGrad;
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillRect(0, 0, BASE_WIDTH, BASE_HEIGHT);
 
                 // Scrolling grid lines (sci-fi floor effect)
                 const gridScroll = dimProgress * 3;
@@ -3318,10 +3353,10 @@
                 // Horizontal lines (perspective)
                 for (let i = 0; i < 15; i++) {
                     const baseY = groundY + 10 + i * 15;
-                    if (baseY < canvas.height) {
+                    if (baseY < BASE_HEIGHT) {
                         ctx.beginPath();
                         ctx.moveTo(0, baseY);
-                        ctx.lineTo(canvas.width, baseY);
+                        ctx.lineTo(BASE_WIDTH, baseY);
                         ctx.stroke();
                     }
                 }
@@ -3331,7 +3366,7 @@
                     const lineX = (i * 60 - gridScroll % 60);
                     ctx.beginPath();
                     ctx.moveTo(lineX, groundY);
-                    ctx.lineTo(lineX, canvas.height);
+                    ctx.lineTo(lineX, BASE_HEIGHT);
                     ctx.stroke();
                 }
 
@@ -3356,12 +3391,12 @@
                 }
 
                 // Ground platform (no spikes - safe sci-fi floor)
-                const floorGrad = ctx.createLinearGradient(0, groundY, 0, canvas.height);
+                const floorGrad = ctx.createLinearGradient(0, groundY, 0, BASE_HEIGHT);
                 floorGrad.addColorStop(0, '#223344');
                 floorGrad.addColorStop(0.1, '#334455');
                 floorGrad.addColorStop(1, '#112233');
                 ctx.fillStyle = floorGrad;
-                ctx.fillRect(0, groundY, canvas.width, canvas.height - groundY);
+                ctx.fillRect(0, groundY, BASE_WIDTH, BASE_HEIGHT - groundY);
 
                 // Glowing edge on floor
                 ctx.strokeStyle = '#00ffff';
@@ -3370,12 +3405,12 @@
                 ctx.shadowBlur = 10;
                 ctx.beginPath();
                 ctx.moveTo(0, groundY);
-                ctx.lineTo(canvas.width, groundY);
+                ctx.lineTo(BASE_WIDTH, groundY);
                 ctx.stroke();
                 ctx.shadowBlur = 0;
 
                 // Exit portal on right side
-                const portalX = canvas.width - 120;
+                const portalX = BASE_WIDTH - 120;
                 const portalY = groundY - 100;
                 drawSciFiPortal(portalX, portalY, 60, 100, dimProgress * 0.1);
 
@@ -3433,7 +3468,7 @@
                     if (enterProgress > 0.8) {
                         const flashAlpha = (enterProgress - 0.8) / 0.2;
                         ctx.fillStyle = `rgba(255, 255, 255, ${flashAlpha})`;
-                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                        ctx.fillRect(0, 0, BASE_WIDTH, BASE_HEIGHT);
                     }
                 }
 
@@ -3443,18 +3478,18 @@
                     const exitPhase = enterProgress - 1;
 
                     // Draw game-like background (covers the sci-fi dimension)
-                    const bgGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+                    const bgGrad = ctx.createLinearGradient(0, 0, 0, BASE_HEIGHT);
                     bgGrad.addColorStop(0, '#0a0a18');
                     bgGrad.addColorStop(0.5, '#0f1a30');
                     bgGrad.addColorStop(1, '#0f3460');
                     ctx.fillStyle = bgGrad;
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.fillRect(0, 0, BASE_WIDTH, BASE_HEIGHT);
 
                     // Ground
                     ctx.fillStyle = '#0f3460';
-                    ctx.fillRect(0, groundY, canvas.width, canvas.height - groundY);
+                    ctx.fillRect(0, groundY, BASE_WIDTH, BASE_HEIGHT - groundY);
                     ctx.fillStyle = '#00d4ff';
-                    ctx.fillRect(0, groundY, canvas.width, 3);
+                    ctx.fillRect(0, groundY, BASE_WIDTH, 3);
 
                     // Portal on left side
                     const exitPortalX = 100;
@@ -3486,7 +3521,7 @@
                     if (exitPhase < 0.15) {
                         const flashAlpha = 1 - (exitPhase / 0.15);
                         ctx.fillStyle = `rgba(255, 255, 255, ${flashAlpha})`;
-                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                        ctx.fillRect(0, 0, BASE_WIDTH, BASE_HEIGHT);
                     }
                 }
 
@@ -3511,7 +3546,7 @@
                     if (player.x < 50) {
                         player.x = 100;
                     }
-                    player.y = canvas.height - GROUND_HEIGHT - playerSize;
+                    player.y = BASE_HEIGHT - GROUND_HEIGHT - playerSize;
                     player.velocityY = 0;
                     player.rotation = 0;
                     player.isJumping = false;
@@ -3527,12 +3562,12 @@
 
         function drawBackground() {
             // Clean gradient background matching the ground color theme
-            const spaceGradient = ctx.createLinearGradient(0, 0, 0, canvas.height - GROUND_HEIGHT);
+            const spaceGradient = ctx.createLinearGradient(0, 0, 0, BASE_HEIGHT - GROUND_HEIGHT);
             spaceGradient.addColorStop(0, '#0a0a18');
             spaceGradient.addColorStop(0.5, '#0f1a30');
             spaceGradient.addColorStop(1, '#0f3460');
             ctx.fillStyle = spaceGradient;
-            ctx.fillRect(0, 0, canvas.width, canvas.height - GROUND_HEIGHT);
+            ctx.fillRect(0, 0, BASE_WIDTH, BASE_HEIGHT - GROUND_HEIGHT);
 
             // Draw simple twinkling stars
             for (const star of stars) {
@@ -3542,7 +3577,7 @@
                 // Move stars slowly (parallax effect)
                 star.x -= star.speed;
                 if (star.x < -5) {
-                    star.x = canvas.width + 5;
+                    star.x = BASE_WIDTH + 5;
                     star.y = Math.random() * 350;
                 }
 
@@ -3570,7 +3605,7 @@
         function drawGround() {
             // Draw the full ground (extended for camera offset)
             ctx.fillStyle = '#0f3460';
-            ctx.fillRect(-50, canvas.height - GROUND_HEIGHT, canvas.width + 100, GROUND_HEIGHT);
+            ctx.fillRect(-50, BASE_HEIGHT - GROUND_HEIGHT, BASE_WIDTH + 100, GROUND_HEIGHT);
 
             // Geometric pattern on ground - subtle hexagonal grid
             ctx.strokeStyle = 'rgba(0, 212, 255, 0.15)';
@@ -3578,9 +3613,9 @@
             const hexSize = 30;
             const hexHeight = hexSize * Math.sqrt(3);
             for (let row = 0; row < 3; row++) {
-                for (let col = -2; col < canvas.width / (hexSize * 1.5) + 3; col++) {
+                for (let col = -2; col < BASE_WIDTH / (hexSize * 1.5) + 3; col++) {
                     const cx = col * hexSize * 1.5 - (groundOffset % (hexSize * 1.5));
-                    const cy = canvas.height - GROUND_HEIGHT + 25 + row * hexHeight * 0.5;
+                    const cy = BASE_HEIGHT - GROUND_HEIGHT + 25 + row * hexHeight * 0.5;
                     if (row % 2 === 1) {
                         drawHexagon(cx + hexSize * 0.75, cy, hexSize * 0.4);
                     } else {
@@ -3591,19 +3626,19 @@
 
             // Draw ground top line
             ctx.fillStyle = '#00d4ff';
-            ctx.fillRect(-50, canvas.height - GROUND_HEIGHT, canvas.width + 100, 3);
+            ctx.fillRect(-50, BASE_HEIGHT - GROUND_HEIGHT, BASE_WIDTH + 100, 3);
 
             // Draw pits over the ground
             for (const pit of pits) {
-                if (pit.x < canvas.width && pit.x + pit.width > 0) {
+                if (pit.x < BASE_WIDTH && pit.x + pit.width > 0) {
                     // Draw pit as dark void
                     ctx.fillStyle = '#0a0a15';
-                    ctx.fillRect(pit.x, canvas.height - GROUND_HEIGHT, pit.width, GROUND_HEIGHT);
+                    ctx.fillRect(pit.x, BASE_HEIGHT - GROUND_HEIGHT, pit.width, GROUND_HEIGHT);
 
                     // Danger triangles on edges
                     ctx.fillStyle = '#ff4444';
                     // Left edge triangles
-                    for (let ty = canvas.height - GROUND_HEIGHT; ty < canvas.height; ty += 20) {
+                    for (let ty = BASE_HEIGHT - GROUND_HEIGHT; ty < BASE_HEIGHT; ty += 20) {
                         ctx.beginPath();
                         ctx.moveTo(pit.x, ty);
                         ctx.lineTo(pit.x + 10, ty + 10);
@@ -3612,7 +3647,7 @@
                         ctx.fill();
                     }
                     // Right edge triangles
-                    for (let ty = canvas.height - GROUND_HEIGHT; ty < canvas.height; ty += 20) {
+                    for (let ty = BASE_HEIGHT - GROUND_HEIGHT; ty < BASE_HEIGHT; ty += 20) {
                         ctx.beginPath();
                         ctx.moveTo(pit.x + pit.width, ty);
                         ctx.lineTo(pit.x + pit.width - 10, ty + 10);
@@ -3628,9 +3663,9 @@
                     for (let i = 0; i < spikeCount; i++) {
                         const sx = pit.x + i * spikeWidth;
                         ctx.beginPath();
-                        ctx.moveTo(sx, canvas.height);
-                        ctx.lineTo(sx + spikeWidth / 2, canvas.height - 18);
-                        ctx.lineTo(sx + spikeWidth, canvas.height);
+                        ctx.moveTo(sx, BASE_HEIGHT);
+                        ctx.lineTo(sx + spikeWidth / 2, BASE_HEIGHT - 18);
+                        ctx.lineTo(sx + spikeWidth, BASE_HEIGHT);
                         ctx.closePath();
                         ctx.fill();
                     }
@@ -3643,7 +3678,7 @@
             ctx.save();
             const squareSize = 15;
             const lineWidth = 30; // Width of the finish line
-            const lineHeight = canvas.height; // Full height from top to bottom
+            const lineHeight = BASE_HEIGHT; // Full height from top to bottom
 
             // Draw checkered pattern vertically
             for (let row = 0; row < lineHeight / squareSize; row++) {
@@ -3668,7 +3703,7 @@
             // "FINISH" text - vertical with gradient
             ctx.shadowBlur = 0;
             ctx.save();
-            ctx.translate(finishLine.x + lineWidth + 20, canvas.height / 2);
+            ctx.translate(finishLine.x + lineWidth + 20, BASE_HEIGHT / 2);
             ctx.rotate(-Math.PI / 2);
             // Create horizontal gradient (which appears vertical after rotation)
             const finishGradient = ctx.createLinearGradient(-40, -10, 40, 10);
@@ -5024,7 +5059,7 @@
 
         function resetGame() {
             player.x = PLAYER_BASE_X;
-            player.y = canvas.height - GROUND_HEIGHT - player.height;
+            player.y = BASE_HEIGHT - GROUND_HEIGHT - player.height;
             player.velocityY = 0;
             player.rotation = 0;
             player.onGround = true;
