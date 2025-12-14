@@ -5305,16 +5305,14 @@
                 playerGamertag = savedGamertag;
                 gamertagScreen.style.display = 'none';
                 startScreen.style.display = 'none';
-                leaderboardEl.style.display = 'block';
-
+                // Show home page instead of starting game directly
+                document.getElementById('homePage').style.display = 'flex';
+                canvas.style.display = 'none';
+                document.getElementById('ui').style.display = 'none';
+                gameRunning = false;
                 loadLeaderboard();
-
-                currentRound = 1;
-                totalScore = 0;
-                attempts = 1;
-                gameRunning = true;
-                resetGame();
-                updateRoundDisplay();
+                loadHomeLeaderboard();
+                updateHomePreview();
             } else {
                 leaderboardEl.style.display = 'none';
                 startScreen.style.display = 'none';
