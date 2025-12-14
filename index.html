@@ -503,6 +503,7 @@
         // Web Audio API for generated music
         let audioCtx = null;
         let musicPlaying = false;
+        let musicLoopTimeout = null;
 
         // Background stars - reduced for clarity
         const stars = [];
@@ -2104,8 +2105,8 @@
             ctx.fillStyle = '#1a1a2e';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // Don't draw game when on home page
-            if (!gameRunning && document.getElementById('homePage').style.display !== 'none') {
+            // Don't draw game when not running (on home page, skin shop, etc.)
+            if (!gameRunning) {
                 return;
             }
 
@@ -4704,6 +4705,7 @@
             document.getElementById('homePage').style.display = 'flex';
             updateHomePreview();
             gameRunning = false;
+            stopMusic();
         }
 
         function openSkinShopFromHome() {
@@ -4890,9 +4892,21 @@
                     }
                 }
                 // Schedule next loop
-                setTimeout(scheduleLoop, (4 * 8 * beatTime - 0.1) * 1000);
+                musicLoopTimeout = setTimeout(scheduleLoop, (4 * 8 * beatTime - 0.1) * 1000);
             }
             scheduleLoop();
+        }
+
+        function stopMusic() {
+            if (musicLoopTimeout) {
+                clearTimeout(musicLoopTimeout);
+                musicLoopTimeout = null;
+            }
+            if (audioCtx) {
+                audioCtx.close();
+                audioCtx = null;
+            }
+            musicPlaying = false;
         }
 
         function gameOver() {
