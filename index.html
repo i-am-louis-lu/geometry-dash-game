@@ -2104,6 +2104,11 @@
             ctx.fillStyle = '#1a1a2e';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+            // Don't draw game when on home page
+            if (!gameRunning && document.getElementById('homePage').style.display !== 'none') {
+                return;
+            }
+
             // During wormhole transition, only draw the cutscene
             if (wormholeTransition) {
                 drawWormholeEffect();
@@ -4133,8 +4138,25 @@
         }
 
         function drawShip() {
+            // Get current skin for colors
+            const skin = playerSkins.find(sk => sk.id === currentSkin) || playerSkins[0];
+
+            // Ship body gradient based on skin
+            let bodyColor1, bodyColor2, wingColor;
+            if (skin.id === 'rainbow') {
+                const time = Date.now() / 500;
+                const hue1 = (time * 50) % 360;
+                bodyColor1 = `hsl(${hue1}, 100%, 50%)`;
+                bodyColor2 = `hsl(${(hue1 + 60) % 360}, 100%, 40%)`;
+                wingColor = `hsl(${(hue1 + 120) % 360}, 100%, 45%)`;
+            } else {
+                bodyColor1 = skin.bodyColor1;
+                bodyColor2 = skin.bodyColor2;
+                wingColor = skin.bodyColor2;
+            }
+
             // Ship body (rocket/spacecraft shape)
-            ctx.fillStyle = '#00d4ff';
+            ctx.fillStyle = bodyColor1;
             ctx.beginPath();
             ctx.moveTo(25, 0); // Nose
             ctx.lineTo(-15, -15); // Top back
@@ -4143,8 +4165,8 @@
             ctx.closePath();
             ctx.fill();
 
-            // Cockpit window
-            ctx.fillStyle = '#1a1a2e';
+            // Cockpit window (uses eye color)
+            ctx.fillStyle = skin.eyeColor;
             ctx.beginPath();
             ctx.moveTo(15, 0);
             ctx.lineTo(0, -8);
@@ -4171,8 +4193,8 @@
             ctx.closePath();
             ctx.fill();
 
-            // Wing top
-            ctx.fillStyle = '#0099cc';
+            // Wing top (uses skin secondary color)
+            ctx.fillStyle = wingColor;
             ctx.beginPath();
             ctx.moveTo(-5, -10);
             ctx.lineTo(-15, -22);
