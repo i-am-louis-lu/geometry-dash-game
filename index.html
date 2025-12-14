@@ -26,13 +26,16 @@
 
         #gameContainer {
             position: relative;
+            width: 900px;
+            height: 500px;
+            background: #1a1a2e;
+            border: 3px solid #00d4ff;
+            border-radius: 8px;
+            box-shadow: 0 0 30px rgba(0, 212, 255, 0.3);
         }
 
         canvas {
             display: block;
-            border: 3px solid #00d4ff;
-            border-radius: 8px;
-            box-shadow: 0 0 30px rgba(0, 212, 255, 0.3);
         }
 
         #ui {
@@ -388,8 +391,8 @@
 <body>
 
     <div id="gameContainer">
-        <canvas id="gameCanvas" width="900" height="500"></canvas>
-        <div id="ui">
+        <canvas id="gameCanvas" width="900" height="500" style="display: none;"></canvas>
+        <div id="ui" style="display: none;">
             <div id="round">Round: 1/5</div>
             <div id="score">Score: 0</div>
             <div id="attempts">Attempts: 1</div>
@@ -4689,6 +4692,8 @@
 
         function startFromHome() {
             document.getElementById('homePage').style.display = 'none';
+            canvas.style.display = 'block';
+            document.getElementById('ui').style.display = 'block';
             gameRunning = true;
             resetGame();
 
@@ -4703,6 +4708,8 @@
             document.getElementById('gameOver').style.display = 'none';
             document.getElementById('winScreen').style.display = 'none';
             document.getElementById('homePage').style.display = 'flex';
+            document.getElementById('ui').style.display = 'none';
+            canvas.style.display = 'none';
             updateHomePreview();
             gameRunning = false;
             stopMusic();
