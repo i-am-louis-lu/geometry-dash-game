@@ -829,6 +829,9 @@
 
         // Event listeners
         document.addEventListener('keydown', (e) => {
+            // Only process game input when game is running
+            if (!gameRunning) return;
+
             // Track typed characters for admin code
             if (e.key.length === 1) {
                 adminCodeBuffer += e.key.toLowerCase();
@@ -856,7 +859,7 @@
             if (e.code === 'Space' || e.code === 'ArrowUp') {
                 e.preventDefault();
                 jumpPressed = true;
-                if (!flyMode && !shipMode && gameRunning) {
+                if (!flyMode && !shipMode) {
                     if (canOrbJump && currentOrb) {
                         orbJump();
                     } else if (player.onGround || player.onPlatform) {
@@ -873,8 +876,9 @@
         });
 
         canvas.addEventListener('mousedown', () => {
+            if (!gameRunning) return;
             jumpPressed = true;
-            if (!shipMode && gameRunning) {
+            if (!shipMode) {
                 if (canOrbJump && currentOrb) {
                     orbJump();
                 } else if (player.onGround || player.onPlatform) {
@@ -889,8 +893,9 @@
 
         canvas.addEventListener('touchstart', (e) => {
             e.preventDefault();
+            if (!gameRunning) return;
             jumpPressed = true;
-            if (!shipMode && gameRunning) {
+            if (!shipMode) {
                 if (canOrbJump && currentOrb) {
                     orbJump();
                 } else if (player.onGround || player.onPlatform) {
@@ -4747,6 +4752,7 @@
             canvas.style.display = 'none';
             updateHomePreview();
             gameRunning = false;
+            jumpPressed = false;
             stopMusic();
         }
 
