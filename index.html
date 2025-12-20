@@ -2207,14 +2207,14 @@
                 return;
             }
 
-            // During wormhole transition, only draw the cutscene
-            if (wormholeTransition) {
+            // During wormhole transition, only draw the cutscene (but not if dead - show particles instead)
+            if (wormholeTransition && gameRunning) {
                 drawWormholeEffect();
                 return;
             }
 
-            // During secret area cutscene, only draw that
-            if (secretAreaActive) {
+            // During secret area cutscene, only draw that (but not if dead - show particles instead)
+            if (secretAreaActive && gameRunning) {
                 drawSecretAreaCutscene();
                 return;
             }
