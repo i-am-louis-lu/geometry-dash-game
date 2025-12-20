@@ -73,7 +73,7 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            background: rgba(0, 0, 0, 0.85);
+            background: transparent;
             color: #fff;
         }
 
@@ -130,6 +130,33 @@
             margin: 15px auto;
             border-radius: 8px;
             box-shadow: 0 0 20px currentColor;
+            position: relative;
+        }
+
+        #homePlayerPreview .eye {
+            position: absolute;
+            width: 14px;
+            height: 14px;
+            border: 2px solid #1a1a2e;
+        }
+
+        #homePlayerPreview .eye-left {
+            top: 15px;
+            left: 12px;
+        }
+
+        #homePlayerPreview .eye-right {
+            top: 15px;
+            right: 12px;
+        }
+
+        #homePlayerPreview .mouth {
+            position: absolute;
+            bottom: 15px;
+            left: 12px;
+            right: 12px;
+            height: 10px;
+            border: 2px solid #1a1a2e;
         }
 
         .home-gems {
@@ -202,6 +229,33 @@
             height: 50px;
             margin: 0 auto 10px;
             border-radius: 5px;
+            position: relative;
+        }
+
+        .skin-preview .eye {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            border: 1px solid #1a1a2e;
+        }
+
+        .skin-preview .eye-left {
+            top: 10px;
+            left: 8px;
+        }
+
+        .skin-preview .eye-right {
+            top: 10px;
+            right: 8px;
+        }
+
+        .skin-preview .mouth {
+            position: absolute;
+            bottom: 10px;
+            left: 8px;
+            right: 8px;
+            height: 6px;
+            border: 1px solid #1a1a2e;
         }
 
         .skin-name {
@@ -662,15 +716,15 @@
         let secretEntryX = 0; // X position where player entered secret portal
         let totalGemsEver = 0; // Total gems collected across all games (for unlocks)
 
-        // Player skins system
+        // Player skins system - each has a unique ship design
         const playerSkins = [
-            { id: 'default', name: 'Classic', bodyColor1: '#ffcc00', bodyColor2: '#e67300', eyeColor: '#00d4ff', cost: 0 },
-            { id: 'ice', name: 'Ice Cube', bodyColor1: '#66ffff', bodyColor2: '#0088aa', eyeColor: '#ffffff', cost: 5 },
-            { id: 'fire', name: 'Fire', bodyColor1: '#ff4400', bodyColor2: '#880000', eyeColor: '#ffff00', cost: 10 },
-            { id: 'neon', name: 'Neon', bodyColor1: '#ff00ff', bodyColor2: '#8800aa', eyeColor: '#00ff00', cost: 15 },
-            { id: 'gold', name: 'Golden', bodyColor1: '#ffd700', bodyColor2: '#b8860b', eyeColor: '#ffffff', cost: 20 },
-            { id: 'shadow', name: 'Shadow', bodyColor1: '#333333', bodyColor2: '#111111', eyeColor: '#ff0000', cost: 25 },
-            { id: 'rainbow', name: 'Rainbow', bodyColor1: '#ff0000', bodyColor2: '#0000ff', eyeColor: '#00ff00', cost: 30 }
+            { id: 'default', name: 'Classic', bodyColor1: '#ffcc00', bodyColor2: '#e67300', eyeColor: '#00d4ff', cost: 0, shipStyle: 'rocket' },
+            { id: 'ice', name: 'Ice Cube', bodyColor1: '#66ffff', bodyColor2: '#0088aa', eyeColor: '#ffffff', cost: 5, shipStyle: 'jet' },
+            { id: 'fire', name: 'Fire', bodyColor1: '#ff4400', bodyColor2: '#880000', eyeColor: '#ffff00', cost: 10, shipStyle: 'dart' },
+            { id: 'neon', name: 'Neon', bodyColor1: '#ff00ff', bodyColor2: '#8800aa', eyeColor: '#00ff00', cost: 15, shipStyle: 'ufo' },
+            { id: 'gold', name: 'Golden', bodyColor1: '#ffd700', bodyColor2: '#b8860b', eyeColor: '#ffffff', cost: 20, shipStyle: 'cruiser' },
+            { id: 'shadow', name: 'Shadow', bodyColor1: '#333333', bodyColor2: '#111111', eyeColor: '#ff0000', cost: 25, shipStyle: 'stealth' },
+            { id: 'rainbow', name: 'Rainbow', bodyColor1: '#ff0000', bodyColor2: '#0000ff', eyeColor: '#00ff00', cost: 30, shipStyle: 'star' }
         ];
         let currentSkin = 'default';
         let unlockedSkins = ['default']; // Start with default unlocked
@@ -1603,9 +1657,6 @@
         }
 
         function update() {
-            // Don't run any game logic when not running (on home page, etc.)
-            if (!gameRunning) return;
-
             // Always update particles (even when game is not running, for death explosion)
             for (let i = particles.length - 1; i >= 0; i--) {
                 particles[i].x += particles[i].vx;
@@ -1616,6 +1667,9 @@
                     particles.splice(i, 1);
                 }
             }
+
+            // Don't run any other game logic when not running (on home page, etc.)
+            if (!gameRunning) return;
 
             // Handle wormhole transition (game is paused during this)
             if (wormholeTransition) {
@@ -2143,15 +2197,30 @@
             ctx.fillStyle = '#1a1a2e';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // Don't draw game when not running (on home page, skin shop, etc.)
-            if (!gameRunning) {
-                return;
-            }
-
             // Reapply game transform
             ctx.setTransform(scale, 0, 0, scale,
                 (window.innerWidth - BASE_WIDTH * scale) / 2,
                 (window.innerHeight - BASE_HEIGHT * scale) / 2);
+
+            // Always draw particles (for death explosion even when game is not running)
+            for (const particle of particles) {
+                ctx.globalAlpha = particle.life / 60;
+                ctx.fillStyle = particle.color;
+                const size = particle.size || 4;
+                if (particle.isSquare) {
+                    ctx.fillRect(particle.x - size / 2, particle.y - size / 2, size, size);
+                } else {
+                    ctx.beginPath();
+                    ctx.arc(particle.x, particle.y, size, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+            ctx.globalAlpha = 1;
+
+            // Don't draw game when not running (but keep drawing if particles are active for death animation)
+            if (!gameRunning && particles.length === 0) {
+                return;
+            }
 
             // During wormhole transition, only draw the cutscene
             if (wormholeTransition) {
@@ -2281,24 +2350,7 @@
             // Draw player
             drawPlayer();
 
-            // Draw particles
-            for (const particle of particles) {
-                ctx.globalAlpha = particle.life / 60;
-                ctx.fillStyle = particle.color;
-                const size = particle.size || 4;
-                if (particle.isSquare) {
-                    // Draw as square/cube
-                    ctx.fillRect(particle.x - size / 2, particle.y - size / 2, size, size);
-                } else {
-                    // Draw as circle
-                    ctx.beginPath();
-                    ctx.arc(particle.x, particle.y, size, 0, Math.PI * 2);
-                    ctx.fill();
-                }
-            }
-            ctx.globalAlpha = 1;
-
-            // Draw spawn waves
+            // Draw spawn waves (particles are drawn at start of draw function)
             for (let i = spawnWaves.length - 1; i >= 0; i--) {
                 const wave = spawnWaves[i];
                 const maxLife = 40;  // Match the life value in createSpawnWaves
@@ -2338,10 +2390,7 @@
             // Spawn countdown overlay (after wormhole transition)
             if (spawnCountdownActive) {
                 const secondsLeft = Math.ceil(spawnCountdown / 60);
-                // Semi-transparent overlay
-                ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
-                ctx.fillRect(0, 0, BASE_WIDTH, BASE_HEIGHT);
-                // Countdown number
+                // Countdown number (removed black overlay)
                 ctx.fillStyle = '#00d4ff';
                 ctx.font = 'bold 120px Orbitron';
                 ctx.textAlign = 'center';
@@ -3175,13 +3224,7 @@
                 ctx.restore();
             }
 
-            // Fade in overlay only at very start
-            const initialProgress = Math.min(wormholeProgress / 30, 1); // First 0.5 seconds
-            if (initialProgress < 1) {
-                const fadeAlpha = 1 - initialProgress;
-                ctx.fillStyle = `rgba(0, 0, 0, ${fadeAlpha})`;
-                ctx.fillRect(0, 0, BASE_WIDTH, BASE_HEIGHT);
-            }
+            // Fade removed - no black overlay
 
             // Text indicator
         }
@@ -4182,8 +4225,9 @@
         }
 
         function drawShip() {
-            // Get current skin for colors
+            // Get current skin for colors and ship style
             const skin = playerSkins.find(sk => sk.id === currentSkin) || playerSkins[0];
+            const shipStyle = skin.shipStyle || 'rocket';
 
             // Ship body gradient based on skin
             let bodyColor1, bodyColor2, wingColor;
@@ -4199,18 +4243,48 @@
                 wingColor = skin.bodyColor2;
             }
 
-            // Ship body (rocket/spacecraft shape)
-            ctx.fillStyle = bodyColor1;
+            // Draw ship based on style
+            switch (shipStyle) {
+                case 'rocket':
+                    drawRocketShip(bodyColor1, wingColor, skin.eyeColor);
+                    break;
+                case 'jet':
+                    drawJetShip(bodyColor1, wingColor, skin.eyeColor);
+                    break;
+                case 'dart':
+                    drawDartShip(bodyColor1, wingColor, skin.eyeColor);
+                    break;
+                case 'ufo':
+                    drawUFOShip(bodyColor1, wingColor, skin.eyeColor);
+                    break;
+                case 'cruiser':
+                    drawCruiserShip(bodyColor1, wingColor, skin.eyeColor);
+                    break;
+                case 'stealth':
+                    drawStealthShip(bodyColor1, wingColor, skin.eyeColor);
+                    break;
+                case 'star':
+                    drawStarShip(bodyColor1, wingColor, skin.eyeColor);
+                    break;
+                default:
+                    drawRocketShip(bodyColor1, wingColor, skin.eyeColor);
+            }
+        }
+
+        // Classic rocket ship (default)
+        function drawRocketShip(bodyColor, wingColor, eyeColor) {
+            // Ship body
+            ctx.fillStyle = bodyColor;
             ctx.beginPath();
-            ctx.moveTo(25, 0); // Nose
-            ctx.lineTo(-15, -15); // Top back
-            ctx.lineTo(-10, 0); // Back center
-            ctx.lineTo(-15, 15); // Bottom back
+            ctx.moveTo(25, 0);
+            ctx.lineTo(-15, -15);
+            ctx.lineTo(-10, 0);
+            ctx.lineTo(-15, 15);
             ctx.closePath();
             ctx.fill();
 
-            // Cockpit window (uses eye color)
-            ctx.fillStyle = skin.eyeColor;
+            // Cockpit window
+            ctx.fillStyle = eyeColor;
             ctx.beginPath();
             ctx.moveTo(15, 0);
             ctx.lineTo(0, -8);
@@ -4228,16 +4302,7 @@
             ctx.closePath();
             ctx.fill();
 
-            // Inner engine
-            ctx.fillStyle = '#ffffff';
-            ctx.beginPath();
-            ctx.moveTo(-10, -4);
-            ctx.lineTo(-18, 0);
-            ctx.lineTo(-10, 4);
-            ctx.closePath();
-            ctx.fill();
-
-            // Wing top (uses skin secondary color)
+            // Wings
             ctx.fillStyle = wingColor;
             ctx.beginPath();
             ctx.moveTo(-5, -10);
@@ -4247,7 +4312,6 @@
             ctx.closePath();
             ctx.fill();
 
-            // Wing bottom
             ctx.beginPath();
             ctx.moveTo(-5, 10);
             ctx.lineTo(-15, 22);
@@ -4255,6 +4319,270 @@
             ctx.lineTo(-12, 10);
             ctx.closePath();
             ctx.fill();
+        }
+
+        // Sleek jet fighter
+        function drawJetShip(bodyColor, wingColor, eyeColor) {
+            // Long pointed body
+            ctx.fillStyle = bodyColor;
+            ctx.beginPath();
+            ctx.moveTo(30, 0);
+            ctx.lineTo(-20, -8);
+            ctx.lineTo(-15, 0);
+            ctx.lineTo(-20, 8);
+            ctx.closePath();
+            ctx.fill();
+
+            // Cockpit
+            ctx.fillStyle = eyeColor;
+            ctx.beginPath();
+            ctx.arc(5, 0, 6, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Swept wings
+            ctx.fillStyle = wingColor;
+            ctx.beginPath();
+            ctx.moveTo(0, -5);
+            ctx.lineTo(-25, -20);
+            ctx.lineTo(-20, -5);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.moveTo(0, 5);
+            ctx.lineTo(-25, 20);
+            ctx.lineTo(-20, 5);
+            ctx.closePath();
+            ctx.fill();
+
+            // Engine
+            ctx.fillStyle = '#66ffff';
+            ctx.beginPath();
+            ctx.moveTo(-15, -4);
+            ctx.lineTo(-28, 0);
+            ctx.lineTo(-15, 4);
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        // Sharp dart/arrow
+        function drawDartShip(bodyColor, wingColor, eyeColor) {
+            // Very pointed nose
+            ctx.fillStyle = bodyColor;
+            ctx.beginPath();
+            ctx.moveTo(35, 0);
+            ctx.lineTo(-10, -12);
+            ctx.lineTo(-10, 12);
+            ctx.closePath();
+            ctx.fill();
+
+            // Fire trail cockpit
+            ctx.fillStyle = eyeColor;
+            ctx.beginPath();
+            ctx.moveTo(20, 0);
+            ctx.lineTo(5, -5);
+            ctx.lineTo(5, 5);
+            ctx.closePath();
+            ctx.fill();
+
+            // Small sharp wings
+            ctx.fillStyle = wingColor;
+            ctx.beginPath();
+            ctx.moveTo(-5, -8);
+            ctx.lineTo(-15, -18);
+            ctx.lineTo(-12, -8);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.moveTo(-5, 8);
+            ctx.lineTo(-15, 18);
+            ctx.lineTo(-12, 8);
+            ctx.closePath();
+            ctx.fill();
+
+            // Fire engine
+            ctx.fillStyle = '#ffff00';
+            ctx.beginPath();
+            ctx.moveTo(-10, -6);
+            ctx.lineTo(-30, 0);
+            ctx.lineTo(-10, 6);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.fillStyle = '#ff4400';
+            ctx.beginPath();
+            ctx.moveTo(-10, -4);
+            ctx.lineTo(-22, 0);
+            ctx.lineTo(-10, 4);
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        // UFO/flying saucer
+        function drawUFOShip(bodyColor, wingColor, eyeColor) {
+            // Dome top
+            ctx.fillStyle = eyeColor;
+            ctx.beginPath();
+            ctx.ellipse(0, -5, 12, 10, 0, Math.PI, 0);
+            ctx.fill();
+
+            // Main saucer body
+            ctx.fillStyle = bodyColor;
+            ctx.beginPath();
+            ctx.ellipse(0, 0, 25, 8, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Bottom ring
+            ctx.fillStyle = wingColor;
+            ctx.beginPath();
+            ctx.ellipse(0, 3, 20, 5, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Glow lights
+            ctx.fillStyle = '#00ff00';
+            for (let i = 0; i < 5; i++) {
+                const angle = (i / 5) * Math.PI * 2;
+                const x = Math.cos(angle) * 15;
+                const y = Math.sin(angle) * 4 + 3;
+                ctx.beginPath();
+                ctx.arc(x, y, 2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        // Heavy cruiser
+        function drawCruiserShip(bodyColor, wingColor, eyeColor) {
+            // Bulky main body
+            ctx.fillStyle = bodyColor;
+            ctx.beginPath();
+            ctx.roundRect(-18, -12, 40, 24, 5);
+            ctx.fill();
+
+            // Front section
+            ctx.beginPath();
+            ctx.moveTo(22, -8);
+            ctx.lineTo(30, 0);
+            ctx.lineTo(22, 8);
+            ctx.closePath();
+            ctx.fill();
+
+            // Cockpit windows (multiple)
+            ctx.fillStyle = eyeColor;
+            ctx.fillRect(10, -6, 8, 5);
+            ctx.fillRect(10, 1, 8, 5);
+
+            // Heavy wings
+            ctx.fillStyle = wingColor;
+            ctx.fillRect(-15, -20, 20, 8);
+            ctx.fillRect(-15, 12, 20, 8);
+
+            // Dual engines
+            ctx.fillStyle = '#ffd700';
+            ctx.beginPath();
+            ctx.moveTo(-18, -8);
+            ctx.lineTo(-30, -5);
+            ctx.lineTo(-18, -2);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.moveTo(-18, 2);
+            ctx.lineTo(-30, 5);
+            ctx.lineTo(-18, 8);
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        // Stealth angular ship
+        function drawStealthShip(bodyColor, wingColor, eyeColor) {
+            // Angular stealth body
+            ctx.fillStyle = bodyColor;
+            ctx.beginPath();
+            ctx.moveTo(25, 0);
+            ctx.lineTo(10, -10);
+            ctx.lineTo(-20, -10);
+            ctx.lineTo(-15, 0);
+            ctx.lineTo(-20, 10);
+            ctx.lineTo(10, 10);
+            ctx.closePath();
+            ctx.fill();
+
+            // Red eye cockpit
+            ctx.fillStyle = eyeColor;
+            ctx.beginPath();
+            ctx.moveTo(15, 0);
+            ctx.lineTo(5, -4);
+            ctx.lineTo(5, 4);
+            ctx.closePath();
+            ctx.fill();
+
+            // Angular wings
+            ctx.fillStyle = wingColor;
+            ctx.beginPath();
+            ctx.moveTo(-5, -10);
+            ctx.lineTo(-25, -22);
+            ctx.lineTo(-20, -10);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.moveTo(-5, 10);
+            ctx.lineTo(-25, 22);
+            ctx.lineTo(-20, 10);
+            ctx.closePath();
+            ctx.fill();
+
+            // Subtle engine
+            ctx.fillStyle = '#660000';
+            ctx.beginPath();
+            ctx.moveTo(-15, -5);
+            ctx.lineTo(-22, 0);
+            ctx.lineTo(-15, 5);
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        // Star-shaped ship (rainbow)
+        function drawStarShip(bodyColor, wingColor, eyeColor) {
+            // Star body with 5 points
+            ctx.fillStyle = bodyColor;
+            ctx.beginPath();
+            for (let i = 0; i < 5; i++) {
+                const angle = (i * 72 - 90) * Math.PI / 180;
+                const outerX = Math.cos(angle) * 22;
+                const outerY = Math.sin(angle) * 22;
+                const innerAngle = ((i * 72) + 36 - 90) * Math.PI / 180;
+                const innerX = Math.cos(innerAngle) * 10;
+                const innerY = Math.sin(innerAngle) * 10;
+                if (i === 0) ctx.moveTo(outerX, outerY);
+                else ctx.lineTo(outerX, outerY);
+                ctx.lineTo(innerX, innerY);
+            }
+            ctx.closePath();
+            ctx.fill();
+
+            // Center glow
+            ctx.fillStyle = eyeColor;
+            ctx.beginPath();
+            ctx.arc(0, 0, 8, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Inner star
+            ctx.fillStyle = wingColor;
+            ctx.beginPath();
+            ctx.arc(0, 0, 5, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Rainbow trail
+            const time = Date.now() / 200;
+            for (let i = 0; i < 5; i++) {
+                const hue = (time * 50 + i * 30) % 360;
+                ctx.fillStyle = `hsl(${hue}, 100%, 50%)`;
+                ctx.beginPath();
+                ctx.arc(-25 - i * 5, Math.sin(time + i) * 3, 4 - i * 0.5, 0, Math.PI * 2);
+                ctx.fill();
+            }
         }
 
         function drawAircraft() {
@@ -4727,6 +5055,12 @@
             const preview = document.getElementById('homePlayerPreview');
             preview.style.background = `linear-gradient(180deg, ${skin.bodyColor1}, ${skin.bodyColor2})`;
             preview.style.boxShadow = `0 0 20px ${skin.eyeColor}`;
+            // Add eyes and mouth
+            preview.innerHTML = `
+                <div class="eye eye-left" style="background: ${skin.eyeColor};"></div>
+                <div class="eye eye-right" style="background: ${skin.eyeColor};"></div>
+                <div class="mouth" style="background: ${skin.eyeColor};"></div>
+            `;
             document.getElementById('homeGems').textContent = `💎 ${totalGemsEver}`;
         }
 
@@ -4800,7 +5134,11 @@
                 card.className = `skin-card ${isSelected ? 'selected' : ''} ${!isOwned ? 'locked' : ''}`;
 
                 card.innerHTML = `
-                    <div class="skin-preview" style="background: linear-gradient(180deg, ${skin.bodyColor1}, ${skin.bodyColor2}); box-shadow: 0 0 10px ${skin.eyeColor};"></div>
+                    <div class="skin-preview" style="background: linear-gradient(180deg, ${skin.bodyColor1}, ${skin.bodyColor2}); box-shadow: 0 0 10px ${skin.eyeColor};">
+                        <div class="eye eye-left" style="background: ${skin.eyeColor};"></div>
+                        <div class="eye eye-right" style="background: ${skin.eyeColor};"></div>
+                        <div class="mouth" style="background: ${skin.eyeColor};"></div>
+                    </div>
                     <div class="skin-name">${skin.name}</div>
                     ${isOwned ?
                         `<div class="skin-owned">${isSelected ? '✓ EQUIPPED' : 'OWNED'}</div>` :
