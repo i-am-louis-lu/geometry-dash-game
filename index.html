@@ -2202,21 +2202,6 @@
                 (window.innerWidth - BASE_WIDTH * scale) / 2,
                 (window.innerHeight - BASE_HEIGHT * scale) / 2);
 
-            // Always draw particles (for death explosion even when game is not running)
-            for (const particle of particles) {
-                ctx.globalAlpha = particle.life / 60;
-                ctx.fillStyle = particle.color;
-                const size = particle.size || 4;
-                if (particle.isSquare) {
-                    ctx.fillRect(particle.x - size / 2, particle.y - size / 2, size, size);
-                } else {
-                    ctx.beginPath();
-                    ctx.arc(particle.x, particle.y, size, 0, Math.PI * 2);
-                    ctx.fill();
-                }
-            }
-            ctx.globalAlpha = 1;
-
             // Don't draw game when not running (but keep drawing if particles are active for death animation)
             if (!gameRunning && particles.length === 0) {
                 return;
@@ -2350,7 +2335,7 @@
             // Draw player
             drawPlayer();
 
-            // Draw spawn waves (particles are drawn at start of draw function)
+            // Draw spawn waves
             for (let i = spawnWaves.length - 1; i >= 0; i--) {
                 const wave = spawnWaves[i];
                 const maxLife = 40;  // Match the life value in createSpawnWaves
@@ -2367,6 +2352,21 @@
 
                 if (wave.life <= 0) {
                     spawnWaves.splice(i, 1);
+                }
+            }
+            ctx.globalAlpha = 1;
+
+            // Draw particles (death explosion and others) - drawn last so they appear on top
+            for (const particle of particles) {
+                ctx.globalAlpha = particle.life / 60;
+                ctx.fillStyle = particle.color;
+                const size = particle.size || 4;
+                if (particle.isSquare) {
+                    ctx.fillRect(particle.x - size / 2, particle.y - size / 2, size, size);
+                } else {
+                    ctx.beginPath();
+                    ctx.arc(particle.x, particle.y, size, 0, Math.PI * 2);
+                    ctx.fill();
                 }
             }
             ctx.globalAlpha = 1;
